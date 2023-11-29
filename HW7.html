@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDE Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #parameters {
+            margin-bottom: 10px;
+        }
+        #plot {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>SDE Simulator</h1>
+
+    <div id="parameters">
+        <label for="processType">Select Stochastic Process:</label>
+        <select id="processType" onchange="updateParameterInputs()">
+            <option value="arithmeticBrownian">Arithmetic Brownian</option>
+            <option value="geometricBrownian">Geometric Brownian (Black–Scholes)</option>
+            <option value="ornsteinUhlenbeck">Ornstein–Uhlenbeck (mean-reverting)</option>
+            <option value="vasicek">Vasicek</option>
+        </select>
+
+        <label id="param1Label">Parameter 1:</label>
+        <input type="number" id="param1" step="0.1" placeholder="Enter Parameter 1">
+
+        <label id="param2Label">Parameter 2:</label>
+        <input type="number" id="param2" step="0.1" placeholder="Enter Parameter 2">
+
+        <label for="numInstances">Number of Instances:</label>
+        <input type="number" id="numInstances" min="1" placeholder="Enter Number of Instances">
+
+        <button onclick="simulate()">Simulate</button>
+    </div>
+
+    <div id="plot-container">
+        <h2>SDE Plot</h2>
+        <canvas id="plot"></canvas>
+    </div>
+
+    <script>
+        function updateParameterInputs() {
+            const processType = document.getElementById("processType").value;
+            const param1Label = document.getElementById("param1Label");
+            const param2Label = document.getElementById("param2Label");
+
+            switch (processType) {
+                case 'arithmeticBrownian':
+                    param1Label.textContent = "Drift (α):";
+                    param2Label.textContent = "Volatility (β):";
+                    break;
+                case 'geometricBrownian':
+                    param1Label.textContent = "Drift (α):";
+                    param2Label.textContent = "Volatility (β):";
+                    break;
+                case 'ornsteinUhlenbeck':
+                    param1Label.textContent = "Mean Reversion Rate (α):";
+                    param2Label.textContent = "Volatility (β):";
+                    break;
+                case 'vasicek':
+                    param1Label.textContent = "Mean Reversion Rate (α):";
+                    param2Label.textContent = "Volatility (β):";
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        function simulate() {
+            const processType = document.getElementById("processType").value;
+            const alpha = parseFloat(document.getElementById("param1").value);
+            const beta = parseFloat(document.getElementById("param2").value);
+            const numInstances = parseInt(document.getElementById("numInstances").value);
+
+            const allTrajectories = [];
+            for (let instance = 0; instance < numInstances; instance++) {
+                const data = simulateProcess(processType, alpha, beta);
+                allTrajectories.push(data);
+            }
+
+            plotGraph(allTrajectories);
+        }
+
+        function simulateProcess(processType, alpha, beta) {
+            const data = [];
+            let currentValue = 0;
+
+            for (let i = 0; i < 100; i++) {
+                if (processType === 'arithmeticBrownian') {
+                    const noise = generateNormalDistributionNoise(0, 1);
+                    currentValue += alpha + beta * noise;
+                }
+                else if (processType === 'geometricBrownian') {
+                    const drift = alpha;
+                    const volatility = beta;
+                    const noise = generateNormalDistributionNoise(0, 1);
+                    currentValue *= Math.exp(drift - 0.5 * volatility ** 2 + volatility * noise);
+                }
+                else if (processType === 'ornsteinUhlenbeck') {
+                    const meanReversionRate = alpha;
+                    const volatility = beta;
+                    const noise = generateNormalDistributionNoise(0, 1);
+                    currentValue += meanReversionRate * (0 - currentValue) + volatility * noise;
+                }
+                else if (processType === 'vasicek') {
+                    const meanReversionRate = alpha;
+                    const volatility = beta;
+                    const noise = generateNormalDistributionNoise(0, 1);
+                    currentValue += meanReversionRate * (0 - currentValue) * 0.01 + volatility * noise * Math.sqrt(0.01);
+                }
+
+                data.push(currentValue);
+            }
+
+            return data;
+        }
+
+        function generateNormalDistributionNoise(mean, stdDev) {
+            const u1 = Math.random();
+            const u2 = Math.random();
+            const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+            return mean + stdDev * z;
+        }
+
+        function plotGraph(allTrajectories) {
+            const ctx = document.getElementById('plot').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({ length: 100 }, (_, i) => i + 1),
+                    datasets: []
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom'
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left'
+                        }
+                    }
+                }
+            });
+
+            allTrajectories.forEach((data, instance) => {
+                chart.data.datasets.push({
+                    label: `Instance ${instance + 1}`,
+                    data: data,
+                    borderColor: getRandomColor(),
+                    borderWidth: 2,
+                    fill: false
+                });
+            });
+
+            chart.update();
+        }
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
